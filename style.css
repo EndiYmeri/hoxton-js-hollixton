@@ -2,6 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    font-family: sans-serif;
 }
 
 header {
@@ -34,4 +35,52 @@ li a {
     border: none;
     background-color: transparent;
     cursor: pointer;
+}
+
+main {
+    padding: 1rem 4rem;
+}
+
+main h2 {
+    margin-bottom: 1rem;
+}
+
+.shop-items-section {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, auto);
+    gap: 20px;
+}
+
+.item-card {
+    display: grid;
+    place-content: center;
+}
+
+.item-card img {
+    width: 300px;
+}
+
+.item-card h3 {
+    font-weight: 600;
+    margin: 10px 0;
+    font-size: 1.4rem;
+}
+
+.item-card p span {
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+.item-card .regular-price {}
+
+.item-card .regular-price-with-sale {
+    opacity: .8;
+    text-decoration: line-through;
+    font-size: smaller;
+}
+
+.item-card .sale-price {
+    color: red;
+    font-size: 1.1rem;
 }

@@ -71,9 +71,60 @@ function renderHeader() {
     return headerEl
 }
 
+function renderMain() {
+    const mainEl = document.createElement('main')
+
+    const products = ["Product", "Product", "Product", "Product", "Product",
+        "Product", "Product", "Product"
+    ]
+
+
+    const pageTitle = document.createElement('h2')
+    pageTitle.setAttribute('class', 'page-title')
+    pageTitle.textContent = "Home"
+
+    const shopItems = document.createElement('section')
+    shopItems.setAttribute('class', 'shop-items-section')
+
+    for (const product of products) {
+        const cardEl = document.createElement('div')
+        cardEl.setAttribute('class', 'item-card')
+
+        const productImage = document.createElement('img')
+        productImage.setAttribute('class', 'product-image')
+        productImage.setAttribute('src', 'https://via.placeholder.com/250x350')
+
+        const productTitle = document.createElement('h3')
+        productTitle.textContent = product
+
+        const productPrice = document.createElement('p')
+
+        const regularPrice = document.createElement('span')
+        regularPrice.setAttribute('class', 'regular-price-with-sale')
+        regularPrice.textContent = `£421`
+
+        const salePrice = document.createElement('span')
+        salePrice.setAttribute('class', 'sale-price')
+        salePrice.textContent = `£420.69`
+
+        productPrice.append(regularPrice, salePrice)
+
+        cardEl.append(productImage, productTitle, productPrice)
+        shopItems.append(cardEl)
+    }
+
+
+
+    mainEl.append(pageTitle, shopItems)
+
+
+    return mainEl
+}
+
+
 function render() {
     const body = document.querySelector('body')
-    body.append(renderHeader())
+    body.append(renderHeader(), renderMain())
         // renderHeader()
         // renderMain()
         // renderFooter()
