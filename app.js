@@ -29,29 +29,99 @@
 
 
 
-state = {
-
+const state = {
+    store: []
 }
 
-function renderHeader() {
-    const liElements = ["Girls", "Guys", "Sale"]
+
+// Server Functions
+
+function getStoreItemsFromDB() {
+    return fetch('http://localhost:3000/store').then(resp => resp.json())
+}
+
+
+// Helper Functions
+function isItemNew(product) {
+    const daysToConsider = 10
+
+    // check how many ms are there in 10 days
+    const second = 1000
+    const minute = second * 60
+    const hour = minute * 60
+    const day = hour * 24
+
+    const msForTenDaysAgo = Date.now() - day * daysToConsider
+
+    // get ms for current product
+    const msForProductDate = Date.parse(product.dateEntered)
+        // check if the product ms is more recent than 10 days ago
+    return msForProductDate > msForTenDaysAgo
+}
+
+function getItemsByType(type) {
+    if (type) {
+        return state.store.filter((element) => {
+            return type === element.type
+
+        })
+    } else return state.store
+}
+
+// Render functions
+function renderHeader(store) {
+
     const ShopElements = ["/assets/search.svg", "/assets/account.svg", "/assets/cart.svg"]
 
     const headerEl = document.createElement('header')
     const logoEl = document.createElement('h1')
     logoEl.textContent = "HOLLXTON"
+
+    logoEl.addEventListener('click', () => render(state.store))
+
+
     const navEl = document.createElement('nav')
     const menuEl = document.createElement('ul')
 
+    const liElements = new Set()
+    for (const item of store) {
+        liElements.add(item.type)
+
+    }
     for (const li of liElements) {
         const menuItemEl = document.createElement('li')
         const menuItemAnchorEl = document.createElement('a')
         menuItemAnchorEl.setAttribute('href', '#')
         menuItemAnchorEl.textContent = li
 
+        menuItemAnchorEl.addEventListener('click', () => {
+            render(getItemsByType(li))
+        })
+
         menuItemEl.append(menuItemAnchorEl)
         menuEl.append(menuItemEl)
     }
+
+    const saleMenuItemEl = document.createElement('li')
+    const saleMenuItemAnchorEl = document.createElement('a')
+    saleMenuItemAnchorEl.setAttribute('href', '#')
+    saleMenuItemAnchorEl.textContent = "Sale"
+
+    // saleMenuItemAnchorEl.addEventListener('click', () => {
+    //     getItemsByType()
+    //     return store.filter((element) => {
+    //         if (element.discountedPrice) {
+    //             return element
+    //         }
+
+
+    //     })
+    // })
+
+
+    saleMenuItemEl.append(saleMenuItemAnchorEl)
+    menuEl.append(saleMenuItemEl)
+
     const shopButtonsSection = document.createElement('nav')
     shopButtonsSection.setAttribute('class', 'header-shop-buttons')
 
@@ -71,13 +141,8 @@ function renderHeader() {
     return headerEl
 }
 
-function renderMain() {
+function renderMain(store) {
     const mainEl = document.createElement('main')
-
-    const products = ["Product", "Product", "Product", "Product", "Product",
-        "Product", "Product", "Product"
-    ]
-
 
     const pageTitle = document.createElement('h2')
     pageTitle.setAttribute('class', 'page-title')
@@ -86,47 +151,60 @@ function renderMain() {
     const shopItems = document.createElement('section')
     shopItems.setAttribute('class', 'shop-items-section')
 
-    for (const product of products) {
+    for (let product of store) {
+
         const cardEl = document.createElement('div')
         cardEl.setAttribute('class', 'item-card')
 
+        if (isItemNew(product)) {
+            cardEl.classList.add('new-item')
+        }
+
         const productImage = document.createElement('img')
         productImage.setAttribute('class', 'product-image')
-        productImage.setAttribute('src', 'https://via.placeholder.com/250x350')
+        productImage.setAttribute('src', product.image)
 
         const productTitle = document.createElement('h3')
-        productTitle.textContent = product
+        productTitle.textContent = product.name
 
         const productPrice = document.createElement('p')
 
         const regularPrice = document.createElement('span')
-        regularPrice.setAttribute('class', 'regular-price-with-sale')
-        regularPrice.textContent = `£421`
+        regularPrice.setAttribute('class', 'regular-price')
+        regularPrice.textContent = `£${product.price}`
 
-        const salePrice = document.createElement('span')
-        salePrice.setAttribute('class', 'sale-price')
-        salePrice.textContent = `£420.69`
+        productPrice.append(regularPrice)
 
-        productPrice.append(regularPrice, salePrice)
-
+        if (product.discountedPrice) {
+            regularPrice.setAttribute('class', 'regular-price-with-sale')
+            const salePrice = document.createElement('span')
+            salePrice.setAttribute('class', 'sale-price')
+            salePrice.textContent = `£${product.discountedPrice}`
+            productPrice.append(salePrice)
+        }
         cardEl.append(productImage, productTitle, productPrice)
         shopItems.append(cardEl)
+
     }
-
-
-
     mainEl.append(pageTitle, shopItems)
-
-
     return mainEl
 }
 
-
-function render() {
+function render(store) {
     const body = document.querySelector('body')
-    body.append(renderHeader(), renderMain())
+    body.innerHTML = ""
+    body.append(renderHeader(state.store), renderMain(store))
         // renderHeader()
         // renderMain()
         // renderFooter()
 }
-render()
+
+function init() {
+    render(state.store)
+    getStoreItemsFromDB().then((store) => {
+        state.store = store
+        render(state.store)
+
+    })
+}
+init()
