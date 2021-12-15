@@ -53,6 +53,9 @@ main h2 {
     margin-bottom: 1rem;
 }
 
+
+/* Shop Items Section */
+
 .shop-items-section {
     display: grid;
     width: 100%;
@@ -66,6 +69,7 @@ main h2 {
 .item-card {
     display: grid;
     position: relative;
+    cursor: pointer;
 }
 
 .item-card.new-item::before {
@@ -95,15 +99,139 @@ main h2 {
     font-weight: bold;
 }
 
-.item-card .regular-price {}
+.item-card .out-of-stock-notice {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: rotate(45deg) translate(-50%, -50%);
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: white;
+    background-color: black;
+    padding: .5rem 1rem;
+}
 
-.item-card .regular-price-with-sale {
+.item-card .regular-price {
+    margin-left: 10px;
+}
+
+.regular-price-with-sale {
     opacity: .8;
     text-decoration: line-through;
     font-size: smaller;
 }
 
-.item-card .sale-price {
+.sale-price {
     color: red;
+    font-size: larger;
+    margin-left: 10px;
+}
+
+
+/* Shop Single Item */
+
+.shop-single-item {
+    display: grid;
+    width: 100%;
+    margin: auto;
+    max-width: 1500px;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 80px;
+}
+
+.shop-single-item img {
+    width: 100%;
+}
+
+.shop-single-item h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.shop-single-item p {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.add-to-cart-button {
+    padding: 1rem 2rem;
+    border: 10px;
+    color: white;
+    background-color: black;
+    cursor: pointer;
+    text-transform: uppercase;
     font-size: 1.1rem;
+}
+
+.out-of-stock-title {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.out-of-stock-button {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* Cart Modal */
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+    padding: 2rem;
+    border-radius: 10px;
+    background-color: #ffffffcb;
+    box-shadow: 0px 0px 20px 0px #000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-active {
+    display: block;
+}
+
+.cart-items {
+    margin-top: 10px;
+    grid-auto-flow: row;
+    gap: 20px;
+}
+
+.cart-item {
+    display: grid;
+    grid-template-columns: 50px auto auto;
+    align-items: center;
+    gap: 20px;
+}
+
+.cart-modal img {
+    width: 100%;
+}
+
+.cart-item-count {
+    margin-left: 5px;
+}
+
+.remove-item-button {
+    padding: 0.5rem;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: red;
+    font-weight: bold;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.purchase-button {
+    width: 100%;
+    padding: .5rem 0;
+    margin-top: 20px;
+    border-radius: 10px;
+    background-color: black;
+    color: white;
+    font-size: 1.3rem;
 }

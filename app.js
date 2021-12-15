@@ -33,18 +33,23 @@ const state = {
     store: [],
     typeSelected: null,
     saleSelected: false,
-
+    selectedProductID: null,
+    cart: [],
+    totalCartItemsCount: 0,
+    totalPrice: 0,
+    searchModal: false,
+    accountModal: false,
+    cartModal: false
 }
 
-
 // Server Functions
-
 function getStoreItemsFromDB() {
     return fetch('http://localhost:3000/store').then(resp => resp.json())
 }
 
 
 // Helper Functions
+// Check if item is new or not
 function isItemNew(product) {
     const daysToConsider = 10
 
@@ -62,38 +67,92 @@ function isItemNew(product) {
     return msForProductDate > msForTenDaysAgo
 }
 
+// Get elemennts that we want to show when using filters
 function getProductsToShow() {
+
     let productsToShow = state.store
 
-
-    if (state.typeSelected) {
+    if (state.selectedProductID) {
         productsToShow = productsToShow.filter((product) => {
-            return state.typeSelected === product.type
+            return state.selectedProductID === product.id
         })
+    } else {
 
-    }
-    if (state.saleSelected) {
-        productsToShow = productsToShow.filter((product) => {
-            if (product.discountedPrice) {
-                return product
-            }
-        })
+        if (state.typeSelected) {
+            productsToShow = productsToShow.filter((product) => {
+                return state.typeSelected === product.type
+            })
+
+        }
+        if (state.saleSelected) {
+            productsToShow = productsToShow.filter((product) => {
+                if (product.discountedPrice) {
+                    return product
+                }
+            })
+        }
     }
 
     return productsToShow
 }
 
+// Add item to cart,creating a cart array and decrease the stock 
+function addItemToCart(product) {
+    if (product.stock > 0) {
+        product.stock--
+            if (!state.cart.includes(product)) {
+                product.count = 1
+                state.cart.push(product)
+                state.totalCartItemsCount++
+            } else {
+                product.count++;
+                state.totalCartItemsCount++
+            }
+    }
+}
+
+function removeItemFromCart(product) {
+    if (product.count > 0) {
+        product.stock++;
+        product.count--
+            state.totalCartItemsCount--
+    }
+}
+
+function getCartTotalPrice() {
+    state.totalPrice = 0
+    for (const item of state.cart) {
+        if (item.discountedPrice) {
+            state.totalPrice += item.count * item.discountedPrice
+        } else {
+
+            state.totalPrice += item.count * item.price
+        }
+    }
+    return state.totalPrice
+}
+
+// Go Home
+function goHome() {
+    state.typeSelected = null
+    state.saleSelected = false
+    state.selectedProductID = null
+    state.searchModal = false
+    state.accountModal = false
+    state.cartModal = false
+    render()
+}
+
 // Render functions
+// Render Header
 function renderHeader(store) {
-
-    const ShopElements = ["/assets/search.svg", "/assets/account.svg", "/assets/cart.svg"]
-
     const headerEl = document.createElement('header')
     const logoEl = document.createElement('h1')
     logoEl.textContent = "HOLLXTON"
 
-    logoEl.addEventListener('click', () => render())
-
+    logoEl.addEventListener('click', () => {
+        goHome()
+    })
 
     const navEl = document.createElement('nav')
     const menuEl = document.createElement('ul')
@@ -101,26 +160,9 @@ function renderHeader(store) {
     const liElements = new Set()
     for (const item of store) {
         liElements.add(item.type)
-
     }
     for (const li of liElements) {
-        const menuItemEl = document.createElement('li')
-        const menuItemAnchorEl = document.createElement('a')
-        menuItemAnchorEl.setAttribute('href', '#')
-        menuItemAnchorEl.textContent = li
-
-        menuItemAnchorEl.addEventListener('click', () => {
-            if (state.typeSelected !== li) {
-                state.typeSelected = li
-                render()
-            } else {
-                state.typeSelected = null
-                render()
-            }
-        })
-
-        menuItemEl.append(menuItemAnchorEl)
-        menuEl.append(menuItemEl)
+        menuEl.append(renderMenuLiElements(li))
     }
 
     const saleMenuItemEl = document.createElement('li')
@@ -130,7 +172,6 @@ function renderHeader(store) {
 
     saleMenuItemAnchorEl.addEventListener('click', () => {
         state.saleSelected = !state.saleSelected
-        console.log("Sale clicked")
         render()
     })
 
@@ -138,25 +179,16 @@ function renderHeader(store) {
     saleMenuItemEl.append(saleMenuItemAnchorEl)
     menuEl.append(saleMenuItemEl)
 
-    const shopButtonsSection = document.createElement('nav')
-    shopButtonsSection.setAttribute('class', 'header-shop-buttons')
 
-    for (const shopEl of ShopElements) {
 
-        const shopButton = document.createElement('button')
-        const shopButtonImg = document.createElement('img')
-        shopButtonImg.setAttribute('src', shopEl)
-
-        shopButton.append(shopButtonImg)
-        shopButtonsSection.append(shopButton)
-    }
     navEl.append(menuEl)
 
-    headerEl.append(logoEl, navEl, shopButtonsSection)
+    headerEl.append(logoEl, navEl, renderShopButtonsSection())
 
     return headerEl
 }
 
+// Render Main
 function renderMain(store) {
     const mainEl = document.createElement('main')
 
@@ -167,52 +199,290 @@ function renderMain(store) {
     const shopItems = document.createElement('section')
     shopItems.setAttribute('class', 'shop-items-section')
 
-    for (let product of store) {
+    if (state.selectedProductID) {
+        shopItems.setAttribute('class', `shop-single item-${state.selectedProductID}`)
+        shopItems.append(renderSingleItem(store[0]))
 
-        const cardEl = document.createElement('div')
-        cardEl.setAttribute('class', 'item-card')
+    } else {
+        for (let product of store) {
 
-        if (isItemNew(product)) {
-            cardEl.classList.add('new-item')
+            const cardEl = document.createElement('div')
+            cardEl.setAttribute('class', 'item-card')
+
+            if (isItemNew(product)) {
+                cardEl.classList.add('new-item')
+            }
+
+            const productImage = document.createElement('img')
+            productImage.setAttribute('class', 'product-image')
+            productImage.setAttribute('src', product.image)
+
+            const productTitle = document.createElement('h3')
+            productTitle.textContent = product.name
+
+            const productPrice = document.createElement('p')
+
+            const regularPrice = document.createElement('span')
+            regularPrice.setAttribute('class', 'regular-price')
+            regularPrice.textContent = `£${product.price}`
+
+            productPrice.append(regularPrice)
+
+            if (product.discountedPrice) {
+                regularPrice.setAttribute('class', 'regular-price-with-sale')
+                const salePrice = document.createElement('span')
+                salePrice.setAttribute('class', 'sale-price')
+                salePrice.textContent = `£${product.discountedPrice}`
+                productPrice.append(salePrice)
+            }
+            cardEl.append(productImage, productTitle, productPrice)
+            shopItems.append(cardEl)
+
+            cardEl.addEventListener('click', () => {
+                state.selectedProductID = product.id
+                state.searchModal = false
+                state.accountModal = false
+                state.cartModal = false
+                render()
+            })
+
+            if (!product.stock) {
+                const productOutOfStock = document.createElement('p')
+                productOutOfStock.setAttribute('class', 'out-of-stock-notice')
+                productOutOfStock.innerText = "Product out of Stock"
+                cardEl.prepend(productOutOfStock)
+
+                productTitle.classList.add('out-of-stock-title')
+
+            }
         }
+    }
 
-        const productImage = document.createElement('img')
-        productImage.setAttribute('class', 'product-image')
-        productImage.setAttribute('src', product.image)
 
-        const productTitle = document.createElement('h3')
-        productTitle.textContent = product.name
+    mainEl.append(pageTitle, shopItems, renderCart())
+    return mainEl
+}
+// Render Menu List Elements
+function renderMenuLiElements(li) {
+    const menuItemEl = document.createElement('li')
+    const menuItemAnchorEl = document.createElement('a')
+    menuItemAnchorEl.setAttribute('href', '#')
+    menuItemAnchorEl.textContent = li
 
-        const productPrice = document.createElement('p')
-
-        const regularPrice = document.createElement('span')
-        regularPrice.setAttribute('class', 'regular-price')
-        regularPrice.textContent = `£${product.price}`
-
-        productPrice.append(regularPrice)
-
-        if (product.discountedPrice) {
-            regularPrice.setAttribute('class', 'regular-price-with-sale')
-            const salePrice = document.createElement('span')
-            salePrice.setAttribute('class', 'sale-price')
-            salePrice.textContent = `£${product.discountedPrice}`
-            productPrice.append(salePrice)
+    menuItemAnchorEl.addEventListener('click', () => {
+        if (state.typeSelected !== li) {
+            state.typeSelected = li
+            state.selectedProductID = null
+            state.searchModal = false
+            state.accountModal = false
+            state.cartModal = false
+            render()
+        } else {
+            state.typeSelected = null
+            state.selectedProductID = null
+            state.searchModal = false
+            state.accountModal = false
+            state.cartModal = false
+            render()
         }
-        cardEl.append(productImage, productTitle, productPrice)
-        shopItems.append(cardEl)
+    })
+    menuItemEl.append(menuItemAnchorEl)
+    return menuItemEl
+}
+// Render Shop Buttons Section
+function renderShopButtonsSection() {
+
+    const shopButtonsSection = document.createElement('nav')
+    shopButtonsSection.setAttribute('class', 'header-shop-buttons')
+
+    const shopSearchButton = document.createElement('button')
+    const shopAccountButton = document.createElement('button')
+    const shopCartButton = document.createElement('button')
+
+
+
+    const shopSearchButtonImg = document.createElement('img')
+    const shopAccountButtonImg = document.createElement('img')
+    const shopCartButtonImg = document.createElement('img')
+    const shopCartItemsCount = document.createElement('span')
+
+    shopCartItemsCount.innerText = state.totalCartItemsCount
+
+    shopSearchButtonImg.setAttribute('src', '/assets/search.svg')
+    shopAccountButtonImg.setAttribute('src', '/assets/account.svg')
+    shopCartButtonImg.setAttribute('src', '/assets/cart.svg')
+    shopCartItemsCount.setAttribute('class', 'cart-items-count')
+
+
+    shopSearchButton.append(shopSearchButtonImg)
+    shopAccountButton.append(shopAccountButtonImg)
+
+    shopCartButton.addEventListener('click', () => {
+        // state.typeSelected = null
+        // state.selectedProductID = null
+        state.searchModal = false
+        state.accountModal = false
+        state.cartModal = !state.cartModal
+        render()
+
+    })
+
+    shopCartButton.append(shopCartButtonImg, shopCartItemsCount)
+    shopButtonsSection.append(shopSearchButton, shopAccountButton, shopCartButton)
+
+    return shopButtonsSection
+}
+
+// Render Single Item Page
+function renderSingleItem(product) {
+    const shopSingleItem = document.createElement('div')
+    shopSingleItem.setAttribute('class', 'shop-single-item')
+
+    const productImage = document.createElement('img')
+    productImage.setAttribute('src', product.image)
+
+    const productInfo = document.createElement('div')
+    const productTitle = document.createElement('h1')
+    productTitle.setAttribute('class', 'single-product-title')
+    productTitle.innerText = product.name
+
+    const productPrice = document.createElement('p')
+
+    const regularPrice = document.createElement('span')
+    regularPrice.setAttribute('class', 'regular-price')
+    regularPrice.textContent = `£${product.price}`
+
+    productPrice.append(regularPrice)
+
+    if (product.discountedPrice) {
+        regularPrice.setAttribute('class', 'regular-price-with-sale')
+        const salePrice = document.createElement('span')
+        salePrice.setAttribute('class', 'sale-price')
+        salePrice.textContent = `£${product.discountedPrice}`
+        productPrice.append(salePrice)
+    }
+
+    const addToCartButton = document.createElement('button')
+    addToCartButton.setAttribute('class', 'add-to-cart-button')
+
+    addToCartButton.innerText = "Add item to cart"
+    addToCartButton.addEventListener('click', () => {
+        addItemToCart(product)
+        render()
+    })
+    if (!product.stock) {
+        const productOutOfStock = document.createElement('p')
+        productOutOfStock.innerText = "Product out of Stock"
+
+        productInfo.prepend(productOutOfStock)
+
+        productTitle.classList.add('out-of-stock-title')
+        addToCartButton.classList.add('out-of-stock-button')
 
     }
-    mainEl.append(pageTitle, shopItems)
-    return mainEl
+
+    productInfo.append(productTitle, productPrice, addToCartButton)
+    shopSingleItem.append(productImage, productInfo)
+    return shopSingleItem
+}
+
+function renderCart() {
+    const cartModalEl = document.createElement('div')
+    cartModalEl.setAttribute('class', 'modal')
+
+    if (state.cartModal) {
+        cartModalEl.classList.add('modal-active')
+    }
+    const modalTitle = document.createElement('h2')
+    modalTitle.textContent = "Cart"
+
+    const purchaseButton = document.createElement('button')
+    purchaseButton.setAttribute('class', 'purchase-button')
+    purchaseButton.innerText = `Pay: £${state.totalPrice}`
+
+    if (state.totalCartItemsCount === 0) {
+        const cartEmpty = document.createElement('h3')
+        cartEmpty.textContent = "Cart is Empty"
+        cartModalEl.append(modalTitle, cartEmpty)
+
+    } else {
+        const cartItems = document.createElement('ul')
+        cartItems.setAttribute('class', 'cart-items')
+        for (const product of state.cart) {
+            const cartItem = document.createElement('li')
+            cartItem.setAttribute('class', 'cart-item')
+
+
+            const cartProductImage = document.createElement('img')
+            cartProductImage.setAttribute('src', product.image)
+
+            const cartProductInfo = document.createElement('div')
+            const cartProductName = document.createElement('h3')
+            cartProductName.textContent = product.name
+
+            const productPrice = document.createElement('p')
+            const regularPrice = document.createElement('span')
+            regularPrice.setAttribute('class', 'regular-price')
+            regularPrice.textContent = `£${product.price}`
+
+            const itemCount = document.createElement('span')
+            itemCount.setAttribute('class', 'cart-item-count')
+            itemCount.textContent = `(x${product.count})`
+
+            productPrice.append(regularPrice, itemCount)
+
+            if (product.discountedPrice) {
+                regularPrice.setAttribute('class', 'regular-price-with-sale')
+                const salePrice = document.createElement('span')
+                salePrice.setAttribute('class', 'sale-price')
+                salePrice.textContent = `£${product.discountedPrice}`
+                productPrice.append(salePrice, itemCount)
+            }
+
+            cartProductInfo.append(cartProductName, productPrice)
+
+            const removeItemButton = document.createElement('button')
+            removeItemButton.setAttribute('class', 'remove-item-button')
+            removeItemButton.textContent = "X"
+            removeItemButton.addEventListener('click', () => {
+                removeItemFromCart(product)
+                render()
+                if (state.selectedProductID) {
+                    renderSingleItem(product)
+                } else {
+                    state.selectedProductID = null
+                }
+            })
+
+            cartItem.append(cartProductImage, cartProductInfo, removeItemButton)
+            cartItems.append(cartItem)
+        }
+
+
+        cartModalEl.append(modalTitle, cartItems, purchaseButton)
+
+    }
+
+
+
+
+    return cartModalEl
+}
+
+function renderAccountModal() {
+    const accountModalEl = document.createElement('div')
+    accountModalEl.setAttribute('class', 'modal')
+
+    if (state.accountModal) {
+        cartModalEl.classList.add('modal-active')
+    }
 }
 
 function render() {
     const body = document.querySelector('body')
     body.innerHTML = ""
+    getCartTotalPrice()
     body.append(renderHeader(state.store), renderMain(getProductsToShow()))
-        // renderHeader()
-        // renderMain()
-        // renderFooter()
 }
 
 function init() {
