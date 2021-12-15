@@ -62,14 +62,6 @@ function isItemNew(product) {
     return msForProductDate > msForTenDaysAgo
 }
 
-// function getItemsByType(type) {
-//    
-// }
-
-// function getSaleItems() {
-//     
-// }
-
 function getProductsToShow() {
     let productsToShow = state.store
 
@@ -100,7 +92,7 @@ function renderHeader(store) {
     const logoEl = document.createElement('h1')
     logoEl.textContent = "HOLLXTON"
 
-    logoEl.addEventListener('click', () => render(state.store))
+    logoEl.addEventListener('click', () => render())
 
 
     const navEl = document.createElement('nav')
@@ -224,10 +216,10 @@ function render() {
 }
 
 function init() {
-    render(state.store)
+    render()
     getStoreItemsFromDB().then((store) => {
         state.store = store
-        render(state.store)
+        render()
 
     })
 }
