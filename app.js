@@ -30,7 +30,10 @@
 
 
 const state = {
-    store: []
+    store: [],
+    typeSelected: null,
+    saleSelected: false,
+
 }
 
 
@@ -59,13 +62,33 @@ function isItemNew(product) {
     return msForProductDate > msForTenDaysAgo
 }
 
-function getItemsByType(type) {
-    if (type) {
-        return state.store.filter((element) => {
-            return type === element.type
+// function getItemsByType(type) {
+//    
+// }
 
+// function getSaleItems() {
+//     
+// }
+
+function getProductsToShow() {
+    let productsToShow = state.store
+
+
+    if (state.typeSelected) {
+        productsToShow = productsToShow.filter((product) => {
+            return state.typeSelected === product.type
         })
-    } else return state.store
+
+    }
+    if (state.saleSelected) {
+        productsToShow = productsToShow.filter((product) => {
+            if (product.discountedPrice) {
+                return product
+            }
+        })
+    }
+
+    return productsToShow
 }
 
 // Render functions
@@ -95,7 +118,13 @@ function renderHeader(store) {
         menuItemAnchorEl.textContent = li
 
         menuItemAnchorEl.addEventListener('click', () => {
-            render(getItemsByType(li))
+            if (state.typeSelected !== li) {
+                state.typeSelected = li
+                render()
+            } else {
+                state.typeSelected = null
+                render()
+            }
         })
 
         menuItemEl.append(menuItemAnchorEl)
@@ -107,16 +136,11 @@ function renderHeader(store) {
     saleMenuItemAnchorEl.setAttribute('href', '#')
     saleMenuItemAnchorEl.textContent = "Sale"
 
-    // saleMenuItemAnchorEl.addEventListener('click', () => {
-    //     getItemsByType()
-    //     return store.filter((element) => {
-    //         if (element.discountedPrice) {
-    //             return element
-    //         }
-
-
-    //     })
-    // })
+    saleMenuItemAnchorEl.addEventListener('click', () => {
+        state.saleSelected = !state.saleSelected
+        console.log("Sale clicked")
+        render()
+    })
 
 
     saleMenuItemEl.append(saleMenuItemAnchorEl)
@@ -190,10 +214,10 @@ function renderMain(store) {
     return mainEl
 }
 
-function render(store) {
+function render() {
     const body = document.querySelector('body')
     body.innerHTML = ""
-    body.append(renderHeader(state.store), renderMain(store))
+    body.append(renderHeader(state.store), renderMain(getProductsToShow()))
         // renderHeader()
         // renderMain()
         // renderFooter()
