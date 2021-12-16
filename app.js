@@ -35,22 +35,40 @@ const state = {
     saleSelected: false,
     selectedProductID: null,
     cart: [],
-    totalCartItemsCount: 0,
-    totalPrice: 0,
-    searchModal: false,
-    accountModal: false,
-    cartModal: false,
+    modalOpened: "",
     userSignedIn: false
 }
 
+
+// Change modals at state same as typeSelected
+
 // Server Functions
 function getStoreItemsFromDB() {
-    return fetch('http://localhost:3000/store').then(resp => resp.json())
+    return fetch('http://localhost:3000/store').then((resp) => {
+        return resp.json()
+    })
 }
 
 
+// Update Stock status
+function updateStockStatus() {
+    for (const product of state.store) {
+
+        return fetch(`http://localhost:3000/store/${product.id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-type": "application/json"
+            },
+            body: JSON.stringify({
+                stock: product.stock
+            })
+        })
+    }
+}
+
 // Helper Functions
 // Check if item is new or not
+
 function isItemNew(product) {
     const daysToConsider = 10
 
@@ -99,16 +117,15 @@ function getProductsToShow() {
 
 // Add item to cart,creating a cart array and decrease the stock 
 function addItemToCart(product) {
+
     if (product.stock > 0) {
-        product.stock--
-            if (!state.cart.includes(product)) {
-                product.count = 1
-                state.cart.push(product)
-                state.totalCartItemsCount++
-            } else {
-                product.count++;
-                state.totalCartItemsCount++
-            }
+        product.stock--;
+        if (!state.cart.includes(product)) {
+            product.count = 1
+            state.cart.push(product)
+        } else {
+            product.count++;
+        }
     }
 }
 
@@ -116,21 +133,28 @@ function removeItemFromCart(product) {
     if (product.count > 0) {
         product.stock++;
         product.count--
-            state.totalCartItemsCount--
     }
 }
 
+function getCartItemsCount() {
+    let count = 0
+    for (const item of cart) {
+        count += item.count
+    }
+    return count
+}
+
 function getCartTotalPrice() {
-    state.totalPrice = 0
+    let totalPrice = 0
     for (const item of state.cart) {
         if (item.discountedPrice) {
-            state.totalPrice += item.count * item.discountedPrice
+            totalPrice += item.count * item.discountedPrice
         } else {
 
-            state.totalPrice += item.count * item.price
+            totalPrice += item.count * item.price
         }
     }
-    return state.totalPrice
+    return totalPrice.toFixed(2)
 }
 
 // Go Home
@@ -138,9 +162,7 @@ function goHome() {
     state.typeSelected = null
     state.saleSelected = false
     state.selectedProductID = null
-    state.searchModal = false
-    state.accountModal = false
-    state.cartModal = false
+    state.modalOpened = ""
     render()
 }
 
@@ -241,9 +263,7 @@ function renderMain(store) {
 
             cardEl.addEventListener('click', () => {
                 state.selectedProductID = product.id
-                state.searchModal = false
-                state.accountModal = false
-                state.cartModal = false
+                state.modalOpened = ""
                 render()
             })
 
@@ -259,7 +279,6 @@ function renderMain(store) {
         }
     }
 
-
     mainEl.append(pageTitle, shopItems, renderCart(), renderAccountModal())
     return mainEl
 }
@@ -274,22 +293,19 @@ function renderMenuLiElements(li) {
         if (state.typeSelected !== li) {
             state.typeSelected = li
             state.selectedProductID = null
-            state.searchModal = false
-            state.accountModal = false
-            state.cartModal = false
+            state.modalOpened = ""
             render()
         } else {
             state.typeSelected = null
             state.selectedProductID = null
-            state.searchModal = false
-            state.accountModal = false
-            state.cartModal = false
+            state.modalOpened = ""
             render()
         }
     })
     menuItemEl.append(menuItemAnchorEl)
     return menuItemEl
 }
+
 // Render Shop Buttons Section
 function renderShopButtonsSection() {
 
@@ -300,36 +316,28 @@ function renderShopButtonsSection() {
     const shopAccountButton = document.createElement('button')
     const shopCartButton = document.createElement('button')
 
-
-
     const shopSearchButtonImg = document.createElement('img')
     const shopAccountButtonImg = document.createElement('img')
     const shopCartButtonImg = document.createElement('img')
     const shopCartItemsCount = document.createElement('span')
 
-    shopCartItemsCount.innerText = state.totalCartItemsCount
+    shopCartItemsCount.innerText = getCartItemsCount()
 
-    shopSearchButtonImg.setAttribute('src', '/assets/search.svg')
-    shopAccountButtonImg.setAttribute('src', '/assets/account.svg')
-    shopCartButtonImg.setAttribute('src', '/assets/cart.svg')
+    shopSearchButtonImg.setAttribute('src', './assets/search.svg')
+    shopAccountButtonImg.setAttribute('src', './assets/account.svg')
+    shopCartButtonImg.setAttribute('src', './assets/cart.svg')
     shopCartItemsCount.setAttribute('class', 'cart-items-count')
-
 
     shopSearchButton.append(shopSearchButtonImg)
     shopAccountButton.append(shopAccountButtonImg)
 
-
     shopAccountButton.addEventListener('click', () => {
-        state.searchModal = false
-        state.accountModal = !state.accountModal
-        state.cartModal = false
+        state.modalOpened = state.modalOpened ? "" : "account"
         render()
     })
 
     shopCartButton.addEventListener('click', () => {
-        state.searchModal = false
-        state.accountModal = false
-        state.cartModal = !state.cartModal
+        state.modalOpened = state.modalOpened ? "" : "cart"
         render()
     })
 
@@ -396,7 +404,7 @@ function renderCart() {
     const cartModalEl = document.createElement('div')
     cartModalEl.setAttribute('class', 'modal')
 
-    if (state.cartModal) {
+    if (state.modalOpened === "cart") {
         cartModalEl.classList.add('modal-active')
     }
     const modalTitle = document.createElement('h2')
@@ -404,9 +412,16 @@ function renderCart() {
 
     const purchaseButton = document.createElement('button')
     purchaseButton.setAttribute('class', 'purchase-button')
-    purchaseButton.innerText = `Pay: £${state.totalPrice}`
+    purchaseButton.innerText = `Pay: £${getCartTotalPrice()}`
 
-    if (state.totalCartItemsCount === 0) {
+    purchaseButton.addEventListener('click', () => {
+        updateStockStatus()
+        state.cart = []
+        getCartItemsCount() = 0
+        goHome()
+    })
+
+    if (getCartItemsCount() === 0) {
         const cartEmpty = document.createElement('h3')
         cartEmpty.textContent = "Cart is Empty"
         cartModalEl.append(modalTitle, cartEmpty)
@@ -464,7 +479,6 @@ function renderCart() {
             cartItems.append(cartItem)
         }
 
-
         cartModalEl.append(modalTitle, cartItems, purchaseButton)
 
     }
@@ -474,23 +488,22 @@ function renderCart() {
 function renderAccountModal() {
     const accountModalEl = document.createElement('div')
     accountModalEl.setAttribute('class', 'modal')
-    if (state.accountModal) {
+    if (state.modalOpened === "account") {
         accountModalEl.classList.add('modal-active')
     }
     const modalTitle = document.createElement('h2')
     modalTitle.textContent = "Sign In"
 
     if (!state.userSignedIn) {
-
         accountModalEl.append(modalTitle)
     } else {
 
         accountModalEl.append(modalTitle)
     }
 
-
     return accountModalEl
 }
+
 
 function render() {
     const body = document.querySelector('body')
