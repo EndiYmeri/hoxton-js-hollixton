@@ -39,7 +39,8 @@ const state = {
     totalPrice: 0,
     searchModal: false,
     accountModal: false,
-    cartModal: false
+    cartModal: false,
+    userSignedIn: false
 }
 
 // Server Functions
@@ -259,7 +260,7 @@ function renderMain(store) {
     }
 
 
-    mainEl.append(pageTitle, shopItems, renderCart())
+    mainEl.append(pageTitle, shopItems, renderCart(), renderAccountModal())
     return mainEl
 }
 // Render Menu List Elements
@@ -317,14 +318,19 @@ function renderShopButtonsSection() {
     shopSearchButton.append(shopSearchButtonImg)
     shopAccountButton.append(shopAccountButtonImg)
 
+
+    shopAccountButton.addEventListener('click', () => {
+        state.searchModal = false
+        state.accountModal = !state.accountModal
+        state.cartModal = false
+        render()
+    })
+
     shopCartButton.addEventListener('click', () => {
-        // state.typeSelected = null
-        // state.selectedProductID = null
         state.searchModal = false
         state.accountModal = false
         state.cartModal = !state.cartModal
         render()
-
     })
 
     shopCartButton.append(shopCartButtonImg, shopCartItemsCount)
@@ -462,20 +468,28 @@ function renderCart() {
         cartModalEl.append(modalTitle, cartItems, purchaseButton)
 
     }
-
-
-
-
     return cartModalEl
 }
 
 function renderAccountModal() {
     const accountModalEl = document.createElement('div')
     accountModalEl.setAttribute('class', 'modal')
-
     if (state.accountModal) {
-        cartModalEl.classList.add('modal-active')
+        accountModalEl.classList.add('modal-active')
     }
+    const modalTitle = document.createElement('h2')
+    modalTitle.textContent = "Sign In"
+
+    if (!state.userSignedIn) {
+
+        accountModalEl.append(modalTitle)
+    } else {
+
+        accountModalEl.append(modalTitle)
+    }
+
+
+    return accountModalEl
 }
 
 function render() {
